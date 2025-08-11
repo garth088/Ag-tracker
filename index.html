@@ -1,573 +1,653 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Health & Agoraphobia Tracker</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0b1220">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>AG Tracker</title>
+  <meta name="description" content="Simple, private habit & activity tracker with daily streaks." />
+  <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;AG Tracker&quot;,&quot;short_name&quot;:&quot;AG Tracker&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#0b1220&quot;,&quot;theme_color&quot;:&quot;#0b1220&quot;}">
   <style>
-    :root {
-      --bg: #0f172a;
-      --card: #111827;
-      --muted: #1f2937;
-      --text: #e5e7eb;
-      --accent: #38bdf8;
-      --soft: #94a3b8;
-      --ok: #22c55e;
-      --warn: #f59e0b;
-      --danger: #ef4444;
+    :root{
+      --bg: #0b1220;
+      --card:#121a2b;
+      --muted:#8aa0b8;
+      --text:#e7eef8;
+      --brand:#6dd3ff;
+      --accent:#61ffa8;
+      --danger:#ff7a7a;
+      --ring:#2b3c5c;
+      --shadow: 0 8px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+      --gutter: 14px;
+      --tap: 52px;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;
-      background: linear-gradient(180deg, #0b1220, var(--bg));
-      color: var(--text);
-      min-height: 100vh;
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f8fafc; --card:#ffffff; --muted:#6b7280; --text:#0f172a; --ring:#dbe3f0; --shadow:0 8px 24px rgba(2,6,23,.08) }
     }
-    .container { max-width: 980px; margin: 0 auto; padding: 20px; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-    h1 { font-size: 1.35rem; margin: 0; letter-spacing: .2px; }
-    .pill { padding: 6px 10px; border-radius: 999px; border: 1px solid #334155; font-size: .9rem; color: #cbd5e1; background: #0b1220; display:inline-flex; align-items:center; gap:6px; }
-    .card {
-      background: linear-gradient(180deg, var(--card), #0f172a);
-      border: 1px solid #1f2937;
-      border-radius: 16px;
-      padding: 16px;
-      box-shadow: 0 6px 24px rgba(0,0,0,.2);
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color:var(--text); background:linear-gradient(180deg, var(--bg), #0e1628 60%, var(--bg));
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     }
-    .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; margin-bottom: 12px; }
-    .col-2 { grid-column: span 2; } .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; } .col-6 { grid-column: span 6; } .col-8 { grid-column: span 8; } .col-12 { grid-column: span 12; }
-    label { font-size: .9rem; color: #cbd5e1; display:block; margin-bottom: 6px; }
-    input[type="text"], input[type="number"], input[type="date"], textarea, select {
-      width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #253043; background: #0b1220; color: var(--text); outline: none;
+    .app{
+      max-width: 520px;
+      margin: 0 auto;
+      min-height: 100%;
+      display:flex; flex-direction:column;
     }
-    textarea { resize: vertical; min-height: 42px; }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    button {
-      padding: 10px 14px; border-radius: 999px; border: 1px solid #2b3852; background: #0b1220; color: var(--text); cursor: pointer;
-      transition: transform .05s ease, background .2s ease;
+    header{
+      position:sticky; top:0; z-index:5;
+      background:rgba(11,18,32,.7); backdrop-filter:saturate(180%) blur(14px);
+      border-bottom:1px solid var(--ring);
     }
-    button:hover { background: #0e1627; }
-    button:active { transform: translateY(1px); }
-    .primary { background: linear-gradient(180deg, #1b2a48, #12223f); border-color: #243553; }
-    .accent { border-color: #155e75; background: #0a1721; }
-    .danger { border-color: #7f1d1d; background: #1b0e0e; }
-    .muted { opacity: .9; }
-    .scroll { max-height: 360px; overflow: auto; border: 1px solid #1f2937; border-radius: 12px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.95rem; }
-    th, td { border-bottom: 1px solid #1f2937; padding: 10px 8px; text-align: left; }
-    th { color: #cbd5e1; font-weight: 600; background: #0b1220; position: sticky; top: 0; z-index: 1; }
-    tr:hover td { background: #0b1220; }
-    .footer { margin-top: 16px; display:flex; justify-content: space-between; align-items:center; gap:8px; color:#94a3b8; font-size:.9rem; }
-    .nowrap { white-space: nowrap; }
-    .bar { height: 10px; background:#0b1220; border:1px solid #253043; border-radius:999px; overflow:hidden; }
-    .bar > div { height: 100%; background: linear-gradient(90deg, #1e3a8a, #2563eb, #38bdf8); width: 0%; }
-    nav { display:flex; gap: 8px; }
-    .link { text-decoration: underline; cursor:pointer; }
-    .hidden { display:none; }
-    .quote-card { text-align:center; padding: 32px 16px; }
-    .quote { font-size: 1.2rem; line-height: 1.5; color:#e2e8f0; }
-    .by { margin-top: 8px; color:#94a3b8; }
+    .h-wrap{display:flex; align-items:center; gap:10px; padding:14px var(--gutter)}
+    .logo{
+      width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+      background: radial-gradient(120% 120% at 20% 20%, var(--brand), #8ef, #4fb6ff 70%);
+      color:#07263a; font-weight:900; box-shadow: var(--shadow);
+    }
+    .title{ font-size:18px; font-weight:800; letter-spacing:.2px }
+    .subtitle{ font-size:12px; color:var(--muted) }
 
-    /* Mobile tweaks */
-    @media (max-width: 640px) {
-      .row { grid-template-columns: repeat(6, 1fr); }
-      .col-8 { grid-column: span 6; }
-      .col-6 { grid-column: span 6; }
-      .col-4 { grid-column: span 6; }
-      .col-3 { grid-column: span 3; }
-      .col-2 { grid-column: span 3; }
+    main{ flex:1; padding: var(--gutter); padding-bottom: calc(var(--tap) + 28px) }
+    .grid{ display:grid; gap: var(--gutter) }
+    .card{
+      background:var(--card); border:1px solid var(--ring); border-radius: var(--radius);
+      box-shadow: var(--shadow);
     }
+    .card-h{ padding:12px 14px; border-bottom:1px solid var(--ring); font-weight:700; display:flex; align-items:center; justify-content:space-between }
+    .card-c{ padding:12px 14px }
+
+    .row{ display:flex; align-items:center; gap:10px }
+    .grow{ flex:1 }
+
+    /* Progress Bar */
+    .bar{ height:12px; background:#0f1a2e; border-radius:999px; border:1px solid var(--ring); overflow:hidden }
+    .bar > span{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent),#b5ffdd); transition:width .35s ease }
+
+    /* Habit item */
+    .habit{ display:flex; align-items:center; gap:12px; padding:10px; border-radius:12px; border:1px solid var(--ring); background:rgba(255,255,255,.02) }
+    .habit + .habit{ margin-top:10px }
+    .chk{
+      width:28px; height:28px; border-radius:9px; border:2px solid var(--brand); display:grid; place-items:center;
+      background:transparent; color:var(--brand);
+    }
+    .chk.done{ background:var(--brand); color:#062235; border-color:transparent }
+    .habit-title{ font-weight:700 }
+    .habit-note{ font-size:12px; color:var(--muted) }
+
+    /* Buttons & inputs */
+    button, .btn{
+      appearance:none; border:none; background:var(--brand); color:#062235;
+      padding:12px 14px; border-radius:14px; font-weight:800; box-shadow: var(--shadow);
+    }
+    button.ghost{ background:transparent; color:var(--text); border:1px solid var(--ring) }
+    button.danger{ background:var(--danger); color:#3a0707 }
+    input[type="text"], input[type="number"]{
+      width:100%; padding:12px 12px; border-radius:12px; border:1px solid var(--ring);
+      background:transparent; color:var(--text)
+    }
+    label{ font-size:12px; color:var(--muted) }
+
+    /* Bottom Nav */
+    .tabs{
+      position:sticky; bottom:0; z-index:5; background:rgba(11,18,32,.75);
+      backdrop-filter:saturate(180%) blur(14px); border-top:1px solid var(--ring)
+    }
+    .tabs ul{ display:flex; margin:0; padding:6px; list-style:none; gap:8px }
+    .tabs button{
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:6px; padding:10px 6px; border-radius:14px; background:transparent; color:var(--muted); border:1px solid transparent
+    }
+    .tabs button.active{ color:var(--text); border-color:var(--ring); background:rgba(255,255,255,.02) }
+    .caps{ font-size:10px; letter-spacing:.6px; text-transform:uppercase }
+
+    /* Chips */
+    .chip{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--ring); color:var(--muted) }
+    .chip.good{ color:#0a3; border-color:#0a3 }
+
+    canvas{ width:100%; height:160px; display:block }
+
+    /* Large tap targets for mobile */
+    .tap{ min-height: var(--tap); display:flex; align-items:center; justify-content:center }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0 }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="app" id="app">
     <header>
-      <h1>Health & Agoraphobia Tracker</h1>
-      <nav>
-        <button class="pill" id="navTracker">Tracker</button>
-        <button class="pill" id="navProgress">Progress</button>
-        <button class="pill" id="navGoals">Goals</button>
-      </nav>
+      <div class="h-wrap">
+        <div class="logo" aria-hidden="true">AG</div>
+        <div>
+          <div class="title">AG Tracker</div>
+          <div class="subtitle" id="todayLabel">Today</div>
+        </div>
+        <div class="grow"></div>
+        <button class="ghost tap" id="shareBtn" title="Export data">Export</button>
+      </div>
     </header>
 
-    <!-- Tracker Screen -->
-    <section id="screen-tracker" class="card">
-      <div class="row">
-        <div class="col-3">
-          <label for="date">Date</label>
-          <input id="date" type="date"/>
-        </div>
-        <div class="col-3">
-          <label for="dayPicker">Jump to day</label>
-          <select id="dayPicker"></select>
-        </div>
-        <div class="col-3">
-          <label>&nbsp;</label>
-          <div class="actions">
-            <button id="prevDay">◀ Prev</button>
-            <button id="nextDay">Next ▶</button>
+    <main>
+      <!-- TODAY -->
+      <section class="view" id="view-today" role="region" aria-labelledby="tab-today">
+        <div class="grid">
+          <div class="card">
+            <div class="card-h">Daily Progress <span class="chip" id="streakChip" title="Current streak">0-day streak</span></div>
+            <div class="card-c">
+              <div class="row" style="gap:12px">
+                <div class="grow">
+                  <div class="bar" aria-label="Daily completion">
+                    <span id="progressFill" style="width:0%"></span>
+                  </div>
+                </div>
+                <div id="progressPct" style="min-width:48px; text-align:right; font-weight:800">0%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-h">Your Habits
+              <button class="ghost" id="addHabitBtn" aria-label="Add habit">+ Add</button>
+            </div>
+            <div class="card-c" id="habitList" aria-live="polite"></div>
+            <div class="card-c" style="border-top:1px solid var(--ring)">
+              <div class="row" style="gap:8px">
+                <button id="completeAllBtn" class="btn grow">Mark All Done</button>
+                <button id="resetTodayBtn" class="ghost grow">Reset Today</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-h">Quick Add</div>
+            <div class="card-c">
+              <form id="quickForm" class="grid" style="grid-template-columns:1fr auto; gap:10px">
+                <input required type="text" id="qTitle" placeholder="Name a habit (e.g., Short walk)" />
+                <button type="submit">Add</button>
+              </form>
+              <div style="margin-top:10px; font-size:12px; color:var(--muted)">Habits are private and stored only on your device.</div>
+            </div>
           </div>
         </div>
-        <div class="col-3">
-          <label for="confidence">Confidence (1-10)</label>
-          <input id="confidence" type="number" min="1" max="10" step="1" placeholder="e.g., 6">
-        </div>
+      </section>
 
-        <div class="col-3">
-          <label for="indoor">Indoor Minutes</label>
-          <input id="indoor" type="number" min="0" step="1" placeholder="e.g., 12">
-        </div>
-        <div class="col-3">
-          <label for="panic">Panic Simulation</label>
-          <select id="panic">
-            <option value="">--</option>
-            <option value="Y">Yes</option>
-            <option value="N">No</option>
-          </select>
-        </div>
-        <div class="col-3">
-          <label for="distance">Outdoor Distance (ft)</label>
-          <input id="distance" type="number" min="0" step="1" placeholder="e.g., 25">
-        </div>
-        <div class="col-3">
-          <label for="notes">Notes</label>
-          <input id="notes" type="text" placeholder="How did it feel? Symptoms? Wins?">
-        </div>
+      <!-- PROGRESS -->
+      <section class="view" id="view-progress" hidden role="region" aria-labelledby="tab-progress">
+        <div class="grid">
+          <div class="card">
+            <div class="card-h">Last 30 Days</div>
+            <div class="card-c">
+              <canvas id="trendChart" height="180" aria-label="Trend chart (completion by day)"></canvas>
+              <div class="row" style="margin-top:10px">
+                <span class="chip">Best: <span id="bestDay">0%</span></span>
+                <span class="chip">Avg: <span id="avgDay">0%</span></span>
+                <span class="chip good">Current Streak: <span id="streakDay">0</span>d</span>
+              </div>
+            </div>
+          </div>
 
-        <div class="col-12">
-          <div class="bar"><div id="goalBar"></div></div>
-          <div class="footer">
-            <div id="goalText">Daily goal: 0 / 0 indoor mins</div>
-            <div class="nowrap">This week mins: <span id="weekMins">0</span></div>
+          <div class="card">
+            <div class="card-h">History</div>
+            <div class="card-c" id="historyGrid">
+              <!-- Filled by JS: mini heatmap-like list -->
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="actions">
-        <button class="primary" id="saveBtn">Save</button>
-        <button id="completeBtn" class="accent">Complete</button>
-        <button id="newBtn" class="muted">New</button>
-        <button id="exportBtn" class="muted">Export CSV</button>
-        <label class="pill" for="importFile" style="cursor:pointer;">Import CSV <input id="importFile" type="file" accept=".csv" style="display:none;"></label>
-        <button id="clearBtn" class="danger">Erase All</button>
-      </div>
-
-      <div class="scroll" style="margin-top:12px;">
-        <table id="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Indoor (min)</th>
-              <th>Panic Sim</th>
-              <th>Outdoor (ft)</th>
-              <th>Conf</th>
-              <th>Notes</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Progress Screen -->
-    <section id="screen-progress" class="card hidden">
-      <div class="row">
-        <div class="col-6">
-          <h3>Weekly Summary</h3>
-          <p class="soft" id="weekSummary">No data yet.</p>
-        </div>
-        <div class="col-6">
-          <h3>Best Streak</h3>
-          <p class="soft" id="streakText">—</p>
-        </div>
-        <div class="col-12">
-          <div class="bar"><div id="weekBar"></div></div>
-          <div class="footer">
-            <div id="weekGoalText">Weekly goal: 0 / 0 mins</div>
-            <div class="nowrap"><span id="daysLogged">0</span> days logged</div>
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings" hidden role="region" aria-labelledby="tab-settings">
+        <div class="grid">
+          <div class="card">
+            <div class="card-h">Data</div>
+            <div class="card-c grid" style="gap:10px">
+              <button id="exportBtn">Export (JSON)</button>
+              <label for="importFile">Import (JSON)</label>
+              <input type="file" id="importFile" accept="application/json" />
+              <button class="danger" id="wipeBtn">Erase All Data</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h">About</div>
+            <div class="card-c">
+              <p><strong>AG Tracker</strong> keeps your habits local (no accounts, no cloud). Add habits, check them off daily, and watch your streak grow.</p>
+              <p class="subtitle">Tip: Add 2–5 small, repeatable items. Consistency beats intensity.</p>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </main>
 
-    <!-- Goals Screen -->
-    <section id="screen-goals" class="card hidden">
-      <div class="row">
-        <div class="col-3">
-          <label for="goalDailyIndoor">Daily indoor minutes goal</label>
-          <input id="goalDailyIndoor" type="number" min="0" step="1" placeholder="e.g., 15">
-        </div>
-        <div class="col-3">
-          <label for="goalWeeklyIndoor">Weekly indoor minutes goal</label>
-          <input id="goalWeeklyIndoor" type="number" min="0" step="1" placeholder="e.g., 75">
-        </div>
-        <div class="col-3">
-          <label for="goalOutdoor">Daily outdoor distance goal (ft)</label>
-          <input id="goalOutdoor" type="number" min="0" step="1" placeholder="e.g., 20">
-        </div>
-        <div class="col-3">
-          <label for="goalConfidence">Target confidence (1-10)</label>
-          <input id="goalConfidence" type="number" min="1" max="10" step="1" placeholder="e.g., 6">
-        </div>
-        <div class="col-12 actions">
-          <button id="saveGoals" class="primary">Save Goals</button>
-          <button id="resetGoals" class="danger">Reset Goals</button>
-        </div>
-        <div class="col-12 soft">Tip: Start small. Hitting easy goals builds momentum.</div>
-      </div>
-    </section>
-
-    <!-- Complete Screen -->
-    <section id="screen-complete" class="card hidden">
-      <div class="quote-card">
-        <div class="pill" style="margin-bottom:12px;">Great job today</div>
-        <div class="quote" id="quoteText">You did the thing — even if it was tiny.</div>
-        <div class="by" id="quoteBy">— You</div>
-        <div class="actions" style="justify-content:center; margin-top:16px;">
-          <button id="backToTracker" class="primary">Back to Tracker</button>
-          <button id="newQuote">New Quote</button>
-        </div>
-      </div>
-    </section>
-
-    <footer class="footer">
-      <div>All data is stored on this device.</div>
-      <div class="soft">Install: menu → “Add to Home screen”</div>
-    </footer>
+    <nav class="tabs" role="tablist" aria-label="Primary">
+      <ul>
+        <li class="grow"><button id="tab-today" class="active" role="tab" aria-controls="view-today" aria-selected="true">
+          <span aria-hidden="true">🏠</span><span class="caps">Today</span>
+        </button></li>
+        <li class="grow"><button id="tab-progress" role="tab" aria-controls="view-progress" aria-selected="false">
+          <span aria-hidden="true">📈</span><span class="caps">Progress</span>
+        </button></li>
+        <li class="grow"><button id="tab-settings" role="tab" aria-controls="view-settings" aria-selected="false">
+          <span aria-hidden="true">⚙️</span><span class="caps">Settings</span>
+        </button></li>
+      </ul>
+    </nav>
   </div>
 
+  <template id="habitItemTpl">
+    <div class="habit">
+      <button class="chk" aria-pressed="false" title="Toggle complete"><span class="sr-only">Toggle</span>✓</button>
+      <div class="grow">
+        <div class="habit-title"></div>
+        <div class="habit-note"></div>
+      </div>
+      <button class="ghost editBtn">Edit</button>
+      <button class="ghost danger delBtn" title="Delete">Del</button>
+    </div>
+  </template>
+
+  <dialog id="habitDialog">
+    <form method="dialog" id="habitForm" class="card" style="padding:0; border:none">
+      <div class="card-h">Habit</div>
+      <div class="card-c grid" style="gap:10px">
+        <div>
+          <label for="hTitle">Title</label>
+          <input id="hTitle" type="text" required placeholder="e.g., 5-minute stretch" />
+        </div>
+        <div>
+          <label for="hNote">Note (optional)</label>
+          <input id="hNote" type="text" placeholder="when/where, etc." />
+        </div>
+      </div>
+      <div class="card-c" style="border-top:1px solid var(--ring)">
+        <div class="row" style="gap:8px">
+          <button class="ghost grow" value="cancel">Cancel</button>
+          <button class="grow" id="saveHabitBtn" value="default">Save</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
   <script>
-    // ----- PWA Register -----
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js');
+    ;(() => {
+      const $ = s => document.querySelector(s);
+      const $$ = s => Array.from(document.querySelectorAll(s));
+
+      const stateKey = 'agtracker_v1';
+      const todayISO = () => new Date().toISOString().slice(0,10);
+      const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+
+      /** State shape
+       * {
+       *  habits: [{id, title, note, created}], // static list
+       *  days: { 'YYYY-MM-DD': { done: Set([habitId,...]) } },
+       *  createdAt, updatedAt
+       * }
+       */
+      const defaultState = () => ({
+        habits: [
+          { id: crypto.randomUUID(), title: 'Short walk', note: '2–5 minutes near door', created: Date.now() },
+          { id: crypto.randomUUID(), title: 'Deep breaths', note: '3 x 10 breaths', created: Date.now() },
+          { id: crypto.randomUUID(), title: 'Tidy one thing', note: '60 seconds', created: Date.now() }
+        ],
+        days: {},
+        createdAt: Date.now(),
+        updatedAt: Date.now()
       });
-    }
 
-    // ----- Storage & Helpers -----
-    const $ = (id) => document.getElementById(id);
-    const STORAGE_KEY = "health_agoraphobia_entries_v2";
-    const GOAL_KEY = "health_agoraphobia_goals_v1";
-    const quotes = [
-      ["One step, then the next. That’s how mountains move.", "— Unknown"],
-      ["Courage is a habit. You practiced it today.", "— Unknown"],
-      ["Progress beats perfection, every single time.", "— Unknown"],
-      ["Your future self is high-fiving you right now.", "— Unknown"],
-      ["Small wins stack into big change.", "— Unknown"],
-      ["You showed up. That’s the hardest part.", "— Unknown"],
-      ["Anxiety lied. You did it anyway.", "— Unknown"]
-    ];
+      let state = load();
 
-    function todayISO() {
-      const d = new Date();
-      d.setHours(0,0,0,0);
-      return d.toISOString().slice(0,10);
-    }
+      function load(){
+        try{
+          const raw = localStorage.getItem(stateKey);
+          if(!raw) return defaultState();
+          const obj = JSON.parse(raw);
+          // revive Sets
+          Object.keys(obj.days || {}).forEach(k=>{
+            if(obj.days[k] && Array.isArray(obj.days[k].done)) obj.days[k].done = new Set(obj.days[k].done);
+          });
+          return obj;
+        }catch(e){ console.warn('Failed to load state', e); return defaultState(); }
+      }
+      function save(){
+        const obj = structuredClone(state);
+        // serialize Sets
+        const days = {};
+        Object.keys(obj.days).forEach(k=>{
+          days[k] = { done: Array.from(obj.days[k].done || []) };
+        });
+        obj.days = days;
+        obj.updatedAt = Date.now();
+        localStorage.setItem(stateKey, JSON.stringify(obj));
+        render();
+      }
 
-    function loadEntries() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
-    }
-    function saveEntries(entries) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-      renderEntries(entries);
-      refreshDayPicker(entries);
-      updateProgress(entries);
-    }
-
-    function loadGoals() {
-      try { return JSON.parse(localStorage.getItem(GOAL_KEY)) || {dailyIndoor: 15, weeklyIndoor: 75, outdoor: 20, confidence: 6}; } catch { return {dailyIndoor: 15, weeklyIndoor: 75, outdoor: 20, confidence: 6}; }
-    }
-    function saveGoals(goals) {
-      localStorage.setItem(GOAL_KEY, JSON.stringify(goals));
-      setGoalsForm(goals);
-      updateGoalBar();
-      updateProgress(loadEntries());
-    }
-
-    function setGoalsForm(g) {
-      $("goalDailyIndoor").value = g.dailyIndoor ?? "";
-      $("goalWeeklyIndoor").value = g.weeklyIndoor ?? "";
-      $("goalOutdoor").value = g.outdoor ?? "";
-      $("goalConfidence").value = g.confidence ?? "";
-    }
-
-    // ----- Entry Form -----
-    function formToEntry() {
-      return {
-        date: $("date").value,
-        indoor: Number($("indoor").value || 0),
-        panic: $("panic").value,
-        distance: Number($("distance").value || 0),
-        confidence: Number($("confidence").value || 0),
-        notes: $("notes").value.trim(),
+      // Tabs
+      const views = {
+        today: $('#view-today'),
+        progress: $('#view-progress'),
+        settings: $('#view-settings')
       };
-    }
-    function setForm(e) {
-      $("date").value = e.date || todayISO();
-      $("indoor").value = e.indoor || "";
-      $("panic").value = e.panic || "";
-      $("distance").value = e.distance || "";
-      $("confidence").value = e.confidence || "";
-      $("notes").value = e.notes || "";
-      updateGoalBar();
-    }
-    function clearForm() { setForm({date: todayISO()}); }
-
-    // ----- Day Picker & Navigation -----
-    function refreshDayPicker(entries) {
-      const sel = $("dayPicker");
-      const dates = [...new Set(entries.map(x => x.date))].sort().reverse();
-      sel.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join("");
-      const cur = $("date").value;
-      if (dates.includes(cur)) sel.value = cur;
-    }
-    function goToDay(d) {
-      const entries = loadEntries();
-      const x = entries.find(e => e.date === d) || {date: d};
-      setForm(x);
-      $("dayPicker").value = d;
-    }
-    function nextPrevDay(delta) {
-      const cur = $("date").value;
-      const d = new Date(cur + "T00:00:00");
-      d.setDate(d.getDate() + delta);
-      const iso = d.toISOString().slice(0,10);
-      goToDay(iso);
-    }
-
-    // ----- Render Table -----
-    function renderEntries(entries) {
-      entries.sort((a,b) => (b.date || "").localeCompare(a.date || ""));
-      const tbody = document.querySelector("#table tbody");
-      tbody.innerHTML = "";
-      entries.forEach((e, i) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${e.date || ""}</td>
-          <td>${e.indoor || ""}</td>
-          <td>${e.panic || ""}</td>
-          <td>${e.distance || ""}</td>
-          <td>${e.confidence || ""}</td>
-          <td>${(e.notes || "").replace(/</g,"&lt;")}</td>
-          <td>
-            <button class="muted" onclick="editEntry('${e.date}')">Edit</button>
-            <button class="danger" onclick="deleteEntry('${e.date}')">Delete</button>
-          </td>`;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function editEntry(date) {
-      const entries = loadEntries();
-      const e = entries.find(x => x.date === date);
-      if (e) setForm(e);
-      window.scrollTo({top:0, behavior:"smooth"});
-    }
-    function deleteEntry(date) {
-      const entries = loadEntries();
-      const idx = entries.findIndex(x => x.date === date);
-      if (idx >= 0 && confirm("Delete this day?")) {
-        entries.splice(idx,1);
-        saveEntries(entries);
-        if ($("date").value === date) clearForm();
-      }
-    }
-
-    // ----- Goals Progress Bars -----
-    function updateGoalBar() {
-      const goals = loadGoals();
-      const indoor = Number($("indoor").value || 0);
-      const pct = goals.dailyIndoor ? Math.min(100, Math.round(indoor / goals.dailyIndoor * 100)) : 0;
-      $("goalBar").style.width = pct + "%";
-      $("goalText").textContent = `Daily goal: ${indoor} / ${goals.dailyIndoor || 0} indoor mins`;
-    }
-
-    function updateProgress(entries) {
-      // Weekly mins (Mon-Sun)
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      const day = startOfWeek.getDay();
-      const diffToMonday = (day + 6) % 7;
-      startOfWeek.setDate(now.getDate() - diffToMonday);
-      startOfWeek.setHours(0,0,0,0);
-
-      let weekMins = 0;
-      let daysLogged = new Set();
-      entries.forEach(e => {
-        if (!e.date) return;
-        const d = new Date(e.date + "T00:00:00");
-        daysLogged.add(e.date);
-        if (d >= startOfWeek && d <= now) {
-          weekMins += Number(e.indoor || 0);
+      function switchTo(tab){
+        for(const [k, el] of Object.entries(views)){
+          const active = k === tab;
+          el.hidden = !active;
+          const btn = $('#tab-' + k);
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
         }
-      });
-      $("weekMins").textContent = weekMins;
-      $("daysLogged").textContent = daysLogged.size;
-
-      const goals = loadGoals();
-      const pct = goals.weeklyIndoor ? Math.min(100, Math.round(weekMins / goals.weeklyIndoor * 100)) : 0;
-      $("weekBar").style.width = pct + "%";
-      $("weekGoalText").textContent = `Weekly goal: ${weekMins} / ${goals.weeklyIndoor || 0} mins`;
-
-      // Streak: consecutive days with any indoor > 0 ending today
-      const set = new Set(entries.filter(e=>e.indoor>0).map(e=>e.date));
-      let streak = 0;
-      let d = new Date(); d.setHours(0,0,0,0);
-      while (set.has(d.toISOString().slice(0,10))) {
-        streak++; d.setDate(d.getDate()-1);
       }
-      $("streakText").textContent = streak ? `${streak} day streak` : "No current streak";
-      $("weekSummary").textContent = weekMins ? `You’ve logged ${weekMins} indoor minutes so far this week.` : "Log your first day to see weekly progress.";
-    }
+      $('#tab-today').addEventListener('click', ()=>switchTo('today'));
+      $('#tab-progress').addEventListener('click', ()=>{ switchTo('progress'); drawTrend(); });
+      $('#tab-settings').addEventListener('click', ()=>switchTo('settings'));
 
-    // ----- Export/Import CSV -----
-    function toCSV(entries) {
-      const header = ["date","indoor","panic","distance","confidence","notes"];
-      const rows = [header.join(",")];
-      entries.forEach(e => {
-        const vals = header.map(k => {
-          let v = (e[k] ?? "").toString().replace(/"/g,'""');
-          if (v.includes(",") || v.includes('"') || v.includes("\n")) v = `"${v}"`;
-          return v;
-        });
-        rows.push(vals.join(","));
+      // Header date
+      function prettyToday(){
+        const d = new Date();
+        return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+      }
+      $('#todayLabel').textContent = prettyToday();
+
+      // Habits UI
+      const listEl = $('#habitList');
+      const tpl = $('#habitItemTpl');
+
+      function ensureDay(date = todayISO()){
+        if(!state.days[date]) state.days[date] = { done: new Set() };
+        if(!(state.days[date].done instanceof Set)) state.days[date].done = new Set(state.days[date].done || []);
+      }
+      function toggleHabit(id, date = todayISO()){
+        ensureDay(date);
+        const set = state.days[date].done;
+        if(set.has(id)) set.delete(id); else set.add(id);
+        save();
+      }
+      function completeAll(date = todayISO()){
+        ensureDay(date);
+        const set = state.days[date].done;
+        set.clear();
+        state.habits.forEach(h=> set.add(h.id));
+        save();
+      }
+      function resetToday(date = todayISO()){
+        if(state.days[date]){ state.days[date].done = new Set(); save(); }
+      }
+
+      function editHabit(habit){
+        const dialog = $('#habitDialog');
+        const title = $('#hTitle');
+        const note = $('#hNote');
+        title.value = habit?.title ?? '';
+        note.value = habit?.note ?? '';
+        dialog.showModal();
+        dialog.returnValue = '';
+        $('#saveHabitBtn').onclick = (e) => {
+          e.preventDefault();
+          const t = title.value.trim();
+          if(!t) return;
+          if(habit){
+            habit.title = t;
+            habit.note = note.value.trim();
+          }else{
+            state.habits.push({ id: crypto.randomUUID(), title: t, note: note.value.trim(), created: Date.now() });
+          }
+          dialog.close('saved');
+          save();
+        };
+      }
+
+      $('#addHabitBtn').addEventListener('click', ()=>editHabit(null));
+      $('#quickForm').addEventListener('submit', e=>{
+        e.preventDefault();
+        const t = $('#qTitle').value.trim();
+        if(!t) return;
+        state.habits.push({ id: crypto.randomUUID(), title:t, note:'', created: Date.now() });
+        $('#qTitle').value='';
+        save();
       });
-      return rows.join("\n");
-    }
-    function fromCSV(text) {
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      if (!lines.length) return [];
-      const header = lines[0].split(",").map(s => s.trim());
-      const out = [];
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i];
-        const cols = [];
-        let cur = ""; let inQ = false;
-        for (let c of line) {
-          if (c === '"' ) { inQ = !inQ; }
-          else if (c === "," && !inQ) { cols.push(cur); cur=""; }
-          else { cur += c; }
+      $('#completeAllBtn').addEventListener('click', ()=>completeAll());
+      $('#resetTodayBtn').addEventListener('click', ()=>resetToday());
+
+      function renderHabits(){
+        listEl.innerHTML = '';
+        ensureDay();
+        const done = state.days[todayISO()].done;
+        if(state.habits.length === 0){
+          const empty = document.createElement('div');
+          empty.className = 'subtitle';
+          empty.textContent = 'No habits yet — add one above.';
+          listEl.appendChild(empty);
+          return;
         }
-        cols.push(cur);
-        const obj = {};
-        ["date","indoor","panic","distance","confidence","notes"].forEach((k, idx) => {
-          let v = cols[idx] || "";
-          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/""/g,'"');
-          obj[k] = (k==="indoor"||k==="distance"||k==="confidence") ? Number(v||0) : v;
-        });
-        out.push(obj);
+        for(const h of state.habits){
+          const node = tpl.content.firstElementChild.cloneNode(true);
+          const chk = node.querySelector('.chk');
+          const t = node.querySelector('.habit-title');
+          const n = node.querySelector('.habit-note');
+          t.textContent = h.title;
+          n.textContent = h.note || '—';
+          const isDone = done.has(h.id);
+          chk.classList.toggle('done', isDone);
+          chk.setAttribute('aria-pressed', isDone ? 'true' : 'false');
+          chk.addEventListener('click', ()=>toggleHabit(h.id));
+
+          node.querySelector('.editBtn').addEventListener('click', ()=>editHabit(h));
+          node.querySelector('.delBtn').addEventListener('click', ()=>{
+            if(confirm('Delete this habit?')){
+              // Remove from list
+              state.habits = state.habits.filter(x=>x.id!==h.id);
+              // Remove from all day sets
+              Object.values(state.days).forEach(d=> d.done?.delete(h.id));
+              save();
+            }
+          });
+
+          listEl.appendChild(node);
+        }
       }
-      return out;
-    }
 
-    // ----- Nav & Complete Screen -----
-    function show(id) {
-      ["screen-tracker","screen-progress","screen-goals","screen-complete"].forEach(s => {
-        $(s).classList.toggle("hidden", s !== id);
-      });
-      window.scrollTo({top:0, behavior:"smooth"});
-    }
-    function randomQuote() {
-      const [q, by] = quotes[Math.floor(Math.random()*quotes.length)];
-      $("quoteText").textContent = q;
-      $("quoteBy").textContent = by;
-    }
+      // Progress
+      function todayPct(){
+        ensureDay();
+        const total = state.habits.length || 1;
+        const done = state.days[todayISO()].done.size;
+        return Math.round((done/total) * 100);
+      }
+      function updateProgressBar(){
+        const pct = todayPct();
+        $('#progressFill').style.width = pct + '%';
+        $('#progressPct').textContent = pct + '%';
+      }
 
-    // ----- Events -----
-    window.addEventListener("DOMContentLoaded", () => {
-      // Prefill date
-      $("date").value = todayISO();
+      // Streaks & history
+      function dateAdd(baseISO, days){
+        const d = new Date(baseISO); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10);
+      }
+      function prevDay(iso){ return dateAdd(iso, -1) }
+      function dayComplete(iso){
+        const d = state.days[iso];
+        if(!d) return false;
+        const total = state.habits.length || 1;
+        return (d.done?.size || 0) >= Math.min(total, Math.max(1, total)); // all habits
+      }
+      function calcStreak(){
+        let streak = 0;
+        let cur = todayISO();
+        while(dayComplete(cur)){
+          streak++; cur = prevDay(cur);
+        }
+        return streak;
+      }
+      function renderStreak(){
+        const s = calcStreak();
+        $('#streakChip').textContent = s + (s===1?'-day streak':'-day streak');
+        $('#streakDay').textContent = s;
+      }
 
-      // Load goals and entries
-      setGoalsForm(loadGoals());
-      const entries = loadEntries();
-      renderEntries(entries);
-      refreshDayPicker(entries);
-      updateProgress(entries);
-      updateGoalBar();
+      // History grid (mini heatmap)
+      function renderHistory(){
+        const el = $('#historyGrid');
+        el.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.style.display = 'grid';
+        wrap.style.gridTemplateColumns = 'repeat(10, 1fr)';
+        wrap.style.gap = '6px';
+        const today = todayISO();
+        const days = 30;
+        let best=0, sum=0;
 
-      // Form events
-      ["indoor"].forEach(id => $(id).addEventListener("input", updateGoalBar));
+        for(let i=days-1;i>=0;i--){
+          const dISO = dateAdd(today, -i);
+          ensureDay(dISO);
+          const pct = Math.round(((state.days[dISO].done.size || 0) / (state.habits.length || 1)) * 100);
+          best = Math.max(best, pct); sum += pct;
 
-      $("saveBtn").addEventListener("click", () => {
-        const entries = loadEntries();
-        const e = formToEntry();
-        if (!e.date) { alert("Pick a date"); return; }
-        const idx = entries.findIndex(x => x.date === e.date);
-        if (idx >= 0) entries[idx] = e; else entries.push(e);
-        saveEntries(entries);
-      });
-      $("newBtn").addEventListener("click", clearForm);
-      $("completeBtn").addEventListener("click", () => {
-        // Save then show complete
-        $("saveBtn").click();
-        randomQuote();
-        show("screen-complete");
-      });
+          const cell = document.createElement('div');
+          cell.className='tap';
+          cell.title = dISO + ' — ' + pct + '%';
+          cell.style.border = '1px solid var(--ring)';
+          cell.style.borderRadius = '10px';
+          cell.style.background = `linear-gradient(180deg, rgba(97,255,168,${pct/100}), rgba(109,211,255,${pct/100}))`;
+          cell.style.minHeight='36px';
+          cell.textContent = new Date(dISO).toLocaleDateString(undefined, { month:'numeric', day:'numeric' });
+          wrap.appendChild(cell);
+        }
+        el.appendChild(wrap);
 
-      $("backToTracker").addEventListener("click", () => show("screen-tracker"));
-      $("newQuote").addEventListener("click", randomQuote);
+        $('#bestDay').textContent = best + '%';
+        $('#avgDay').textContent = Math.round(sum/30) + '%';
+      }
 
-      $("exportBtn").addEventListener("click", () => {
-        const csv = toCSV(loadEntries());
-        const blob = new Blob([csv], {type: "text/csv"});
+      // Trend chart (vanilla canvas)
+      function drawTrend(){
+        const canvas = $('#trendChart');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.clientWidth, H = canvas.clientHeight;
+        canvas.width = W * devicePixelRatio; canvas.height = H * devicePixelRatio;
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+        ctx.clearRect(0,0,W,H);
+
+        const today = todayISO();
+        const pts = [];
+        for(let i=29;i>=0;i--){
+          const dISO = dateAdd(today, -i);
+          ensureDay(dISO);
+          const pct = Math.round(((state.days[dISO].done.size || 0) / (state.habits.length || 1)) * 100);
+          pts.push(pct);
+        }
+
+        // axes
+        ctx.globalAlpha = .5;
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ring');
+        ctx.lineWidth = 1;
+        [0,25,50,75,100].forEach((p)=>{
+          const y = H - (p/100)*H;
+          ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+          ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted');
+          ctx.font = '10px system-ui, -apple-system, Roboto';
+          ctx.fillText(p+'%', 4, y-4);
+        });
+
+        // line
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#6dd3ff';
+        const step = W / (pts.length-1 || 1);
+        ctx.beginPath();
+        pts.forEach((v,i)=>{
+          const x = i*step;
+          const y = H - (v/100)*H;
+          if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+
+        // fill
+        const grad = ctx.createLinearGradient(0,0,0,H);
+        grad.addColorStop(0,'rgba(109,211,255,.35)');
+        grad.addColorStop(1,'rgba(97,255,168,.08)');
+        ctx.fillStyle = grad;
+        ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fill();
+
+        renderHistory();
+      }
+
+      // Export/Import
+      function exportJSON(){
+        // prepare clean export (Sets -> arrays)
+        const snapshot = structuredClone(state);
+        const cleanDays = {};
+        Object.keys(snapshot.days).forEach(k=>{
+          cleanDays[k] = { done: Array.from(snapshot.days[k].done || []) };
+        });
+        snapshot.days = cleanDays;
+
+        const blob = new Blob([JSON.stringify(snapshot,null,2)], {type:'application/json'});
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = "health_agoraphobia_tracker.csv";
-        a.click(); URL.revokeObjectURL(url);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'ag-tracker-backup.json'; a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      $('#exportBtn').addEventListener('click', exportJSON);
+      $('#shareBtn').addEventListener('click', exportJSON);
+      $('#importFile').addEventListener('change', async (e)=>{
+        const file = e.target.files?.[0];
+        if(!file) return;
+        const text = await file.text();
+        try{
+          const obj = JSON.parse(text);
+          // revive sets
+          if(obj.days){
+            Object.keys(obj.days).forEach(k=>{
+              obj.days[k].done = new Set(obj.days[k].done || []);
+            });
+          }
+          state = obj; save();
+          alert('Import successful.');
+        }catch(err){
+          alert('Import failed: ' + err.message);
+        }
       });
-      $("importFile").addEventListener("change", (e) => {
-        const file = e.target.files?.[0]; if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          try {
-            const text = reader.result.toString();
-            const parsed = fromCSV(text);
-            if (!confirm(`Import ${parsed.length} entries and replace existing data?`)) return;
-            saveEntries(parsed);
-          } catch (err) { alert("Could not import file"); }
-        };
-        reader.readAsText(file); e.target.value = "";
-      });
-      $("clearBtn").addEventListener("click", () => {
-        if (confirm("Erase ALL tracker data on this device?")) {
-          localStorage.removeItem(STORAGE_KEY);
-          renderEntries([]);
-          refreshDayPicker([]);
-          clearForm();
+      $('#wipeBtn').addEventListener('click', ()=>{
+        if(confirm('Erase ALL data? This cannot be undone.')){
+          localStorage.removeItem(stateKey);
+          state = defaultState();
+          save();
         }
       });
 
-      // Day navigation
-      $("dayPicker").addEventListener("change", (e) => goToDay(e.target.value));
-      $("prevDay").addEventListener("click", () => nextPrevDay(-1));
-      $("nextDay").addEventListener("click", () => nextPrevDay(1));
+      // Initial render
+      function render(){
+        renderHabits();
+        updateProgressBar();
+        renderStreak();
+        if(!views.progress.hidden){ drawTrend(); }
+      }
+      render();
 
-      // Nav buttons
-      $("navTracker").addEventListener("click", ()=>show("screen-tracker"));
-      $("navProgress").addEventListener("click", ()=>show("screen-progress"));
-      $("navGoals").addEventListener("click", ()=>show("screen-goals"));
+      // accessibility: close dialog on backdrop click
+      const dlg = $('#habitDialog');
+      dlg?.addEventListener('click', (e)=>{
+        const rect = dlg.firstElementChild.getBoundingClientRect();
+        const inDialog = e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom;
+        if(!inDialog) dlg.close('cancel');
+      });
 
-      // Goals
-      $("saveGoals").addEventListener("click", () => {
-        const g = {
-          dailyIndoor: Number($("goalDailyIndoor").value || 0),
-          weeklyIndoor: Number($("goalWeeklyIndoor").value || 0),
-          outdoor: Number($("goalOutdoor").value || 0),
-          confidence: Number($("goalConfidence").value || 0),
-        };
-        saveGoals(g);
-        alert("Goals saved");
-      });
-      $("resetGoals").addEventListener("click", () => {
-        if (!confirm("Reset goals to defaults?")) return;
-        saveGoals({dailyIndoor: 15, weeklyIndoor: 75, outdoor: 20, confidence: 6});
-      });
-    });
+      // PWA: tiny, optional offline cache (no external files, so this is just a stub)
+      if('serviceWorker' in navigator){
+        // No-op but keeps install prompt happy
+        navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
+          self.addEventListener('install', e=>self.skipWaiting());
+          self.addEventListener('activate', e=>clients.claim());
+          self.addEventListener('fetch', ()=>{});
+        `], {type:'text/javascript'}))).catch(()=>{});
+      }
+
+      // Resize chart on orientation change
+      addEventListener('resize', ()=>{ if(!views.progress.hidden) drawTrend(); });
+    })();
   </script>
 </body>
 </html>
