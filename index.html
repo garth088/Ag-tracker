@@ -6,7 +6,12 @@
   <meta name="theme-color" content="#111827" />
   <title>AG Tracker</title>
   <meta name="description" content="Simple, private habit & activity tracker with daily streaks." />
-  <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;AG Tracker&quot;,&quot;short_name&quot;:&quot;AG Tracker&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#0b1220&quot;,&quot;theme_color&quot;:&quot;#0b1220&quot;}">
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="theme-color" content="#0b1220" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
   <style>
     :root{
       --bg: #0b1220;
@@ -635,19 +640,20 @@
         if(!inDialog) dlg.close('cancel');
       });
 
-      // PWA: tiny, optional offline cache (no external files, so this is just a stub)
-      if('serviceWorker' in navigator){
-        // No-op but keeps install prompt happy
-        navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
-          self.addEventListener('install', e=>self.skipWaiting());
-          self.addEventListener('activate', e=>clients.claim());
-          self.addEventListener('fetch', ()=>{});
-        `], {type:'text/javascript'}))).catch(()=>{});
-      }
+  
 
       // Resize chart on orientation change
       addEventListener('resize', ()=>{ if(!views.progress.hidden) drawTrend(); });
     })();
   </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .catch(err => console.warn('SW registration failed', err));
+    });
+  }
+</script>
+
 </body>
 </html>
