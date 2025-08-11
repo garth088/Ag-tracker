@@ -176,6 +176,23 @@
               <div style="margin-top:10px; font-size:12px; color:var(--muted)">Habits are private and stored only on your device.</div>
             </div>
           </div>
+
+          <!-- Suggestions card: offer a few common habits for quick adding -->
+          <div class="card">
+            <div class="card-h">Suggestions</div>
+            <div class="card-c" id="suggestions"></div>
+          </div>
+
+          <!-- Diary card: log daily reflections and view past entries -->
+          <div class="card">
+            <div class="card-h">Diary</div>
+            <div class="card-c" style="display:flex; flex-direction:column; gap:8px">
+              <textarea id="diaryText" rows="3" placeholder="Write about today…" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--ring); background:transparent; color:var(--text)"></textarea>
+              <button id="saveDiaryBtn" class="btn" type="button">Save Entry</button>
+              <div id="diaryMsg" class="subtitle" style="min-height:16px"></div>
+              <div id="diaryList" style="display:flex; flex-direction:column; gap:10px"></div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -298,11 +315,14 @@
           { id: crypto.randomUUID(), title: 'Tidy one thing', note: '60 seconds', created: Date.now() }
         ],
         days: {},
+        diary: {},
         createdAt: Date.now(),
         updatedAt: Date.now()
       });
 
       let state = load();
+      // Ensure diary key exists for backward compatibility
+      if(!state.diary) state.diary = {};
 
       function load(){
         try{
@@ -415,6 +435,105 @@
       $('#completeAllBtn').addEventListener('click', ()=>completeAll());
       $('#resetTodayBtn').addEventListener('click', ()=>resetToday());
 
+      /* --- Habit suggestions and diary entry features --- */
+      // Predefined suggestions for users to quickly add common habits. Feel free to modify or extend this list.
+      const suggestionItems = [
+        'Drink water',
+        'Stretch 5 minutes',
+        'Meditate',
+        'Read 10 pages',
+        'Write a journal entry',
+        'Go outside',
+        'Practice gratitude',
+        'Plan tomorrow',
+        'Do a random act of kindness'
+      ];
+      /** Render the suggestion chips into the Suggestions card. Each chip, when clicked, will add the habit if it does not already exist. */
+      function renderSuggestions(){
+        const cont = $('#suggestions');
+        if(!cont) return;
+        cont.innerHTML = '';
+        suggestionItems.forEach(title => {
+          const btn = document.createElement('button');
+          btn.className = 'chip tap';
+          // Append a plus sign to indicate adding
+          btn.textContent = title + ' +';
+          btn.addEventListener('click', () => {
+            // Avoid duplicate habits by matching titles case-insensitively
+            if(!state.habits.some(h => h.title.toLowerCase() === title.toLowerCase())){
+              state.habits.push({ id: crypto.randomUUID(), title, note:'', created: Date.now() });
+              save();
+            }
+          });
+          cont.appendChild(btn);
+        });
+      }
+
+      /** Save a diary entry for the current day. If the text is empty, show an error message. */
+      function saveDiary(){
+        const text = $('#diaryText').value.trim();
+        const date = todayISO();
+        const msgEl = $('#diaryMsg');
+        if(!text){
+          if(msgEl) msgEl.textContent = 'Please write something before saving.';
+          return;
+        }
+        // Initialize diary object if missing
+        if(!state.diary) state.diary = {};
+        state.diary[date] = text;
+        // Clear input and show confirmation
+        $('#diaryText').value = '';
+        if(msgEl) msgEl.textContent = 'Entry saved.';
+        save();
+        renderDiary();
+      }
+
+      /** Render the diary list showing past entries with their completion star/percentage. */
+      function renderDiary(){
+        const list = $('#diaryList');
+        if(!list) return;
+        list.innerHTML = '';
+        const entries = state.diary || {};
+        const dates = Object.keys(entries);
+        if(dates.length === 0){
+          const empty = document.createElement('div');
+          empty.className = 'subtitle';
+          empty.textContent = 'No entries yet.';
+          list.appendChild(empty);
+          return;
+        }
+        // Sort dates descending (most recent first)
+        dates.sort((a,b) => b.localeCompare(a));
+        dates.forEach(date => {
+          const entry = entries[date];
+          // Compute completion percentage for the date. Use total habits at time of viewing (state.habits) for fairness.
+          ensureDay(date);
+          const total = state.habits.length || 1;
+          const done = state.days[date].done?.size || 0;
+          const pct = Math.round((done/total) * 100);
+          const display = pct === 100 ? '★' : pct + '%';
+          const card = document.createElement('div');
+          card.style.display = 'flex';
+          card.style.flexDirection = 'column';
+          card.style.border = '1px solid var(--ring)';
+          card.style.borderRadius = '10px';
+          card.style.padding = '10px';
+          card.style.background = 'var(--card)';
+          card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-weight:600;">${new Date(date).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}</span>
+              <span style="font-weight:700;">${display}</span>
+            </div>
+            <div style="font-size:12px; white-space:pre-wrap;">${entry}</div>
+          `;
+          list.appendChild(card);
+        });
+      }
+
+      // Hook Save Diary button click
+      const saveDiaryBtn = $('#saveDiaryBtn');
+      if(saveDiaryBtn) saveDiaryBtn.addEventListener('click', saveDiary);
+
       function renderHabits(){
         listEl.innerHTML = '';
         ensureDay();
@@ -497,8 +616,9 @@
         el.innerHTML = '';
         const wrap = document.createElement('div');
         wrap.style.display = 'grid';
-        wrap.style.gridTemplateColumns = 'repeat(10, 1fr)';
-        wrap.style.gap = '6px';
+        // Use fewer columns and larger gaps to make each day cell larger
+        wrap.style.gridTemplateColumns = 'repeat(5, 1fr)';
+        wrap.style.gap = '8px';
         const today = todayISO();
         const days = 30;
         let best=0, sum=0;
@@ -515,8 +635,10 @@
           cell.style.border = '1px solid var(--ring)';
           cell.style.borderRadius = '10px';
           cell.style.background = `linear-gradient(180deg, rgba(97,255,168,${pct/100}), rgba(109,211,255,${pct/100}))`;
-          cell.style.minHeight='36px';
-          cell.textContent = new Date(dISO).toLocaleDateString(undefined, { month:'numeric', day:'numeric' });
+          // enlarge each cell and show star for 100% days or percentage otherwise
+          cell.style.minHeight='48px';
+          const display = pct === 100 ? '★' : pct + '%';
+          cell.innerHTML = `<div style="font-weight:700">${display}</div><div style="font-size:10px">${new Date(dISO).toLocaleDateString(undefined, { month:'numeric', day:'numeric' })}</div>`;
           wrap.appendChild(cell);
         }
         el.appendChild(wrap);
@@ -628,6 +750,9 @@
         renderHabits();
         updateProgressBar();
         renderStreak();
+        // Update suggestions and diary UI each render so that they stay in sync with state
+        renderSuggestions();
+        renderDiary();
         if(!views.progress.hidden){ drawTrend(); }
       }
       render();
