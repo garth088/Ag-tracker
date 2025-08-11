@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Health & Agoraphobia Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b1220">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #1f2937;
+      --text: #e5e7eb;
+      --accent: #38bdf8;
+      --soft: #94a3b8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;
+      background: linear-gradient(180deg, #0b1220, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .container { max-width: 980px; margin: 0 auto; padding: 20px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    h1 { font-size: 1.35rem; margin: 0; letter-spacing: .2px; }
+    .pill { padding: 6px 10px; border-radius: 999px; border: 1px solid #334155; font-size: .9rem; color: #cbd5e1; background: #0b1220; display:inline-flex; align-items:center; gap:6px; }
+    .card {
+      background: linear-gradient(180deg, var(--card), #0f172a);
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 6px 24px rgba(0,0,0,.2);
+    }
+    .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; margin-bottom: 12px; }
+    .col-2 { grid-column: span 2; } .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; } .col-6 { grid-column: span 6; } .col-8 { grid-column: span 8; } .col-12 { grid-column: span 12; }
+    label { font-size: .9rem; color: #cbd5e1; display:block; margin-bottom: 6px; }
+    input[type="text"], input[type="number"], input[type="date"], textarea, select {
+      width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #253043; background: #0b1220; color: var(--text); outline: none;
+    }
+    textarea { resize: vertical; min-height: 42px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    button {
+      padding: 10px 14px; border-radius: 999px; border: 1px solid #2b3852; background: #0b1220; color: var(--text); cursor: pointer;
+      transition: transform .05s ease, background .2s ease;
+    }
+    button:hover { background: #0e1627; }
+    button:active { transform: translateY(1px); }
+    .primary { background: linear-gradient(180deg, #1b2a48, #12223f); border-color: #243553; }
+    .accent { border-color: #155e75; background: #0a1721; }
+    .danger { border-color: #7f1d1d; background: #1b0e0e; }
+    .muted { opacity: .9; }
+    .scroll { max-height: 360px; overflow: auto; border: 1px solid #1f2937; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.95rem; }
+    th, td { border-bottom: 1px solid #1f2937; padding: 10px 8px; text-align: left; }
+    th { color: #cbd5e1; font-weight: 600; background: #0b1220; position: sticky; top: 0; z-index: 1; }
+    tr:hover td { background: #0b1220; }
+    .footer { margin-top: 16px; display:flex; justify-content: space-between; align-items:center; gap:8px; color:#94a3b8; font-size:.9rem; }
+    .nowrap { white-space: nowrap; }
+    .bar { height: 10px; background:#0b1220; border:1px solid #253043; border-radius:999px; overflow:hidden; }
+    .bar > div { height: 100%; background: linear-gradient(90deg, #1e3a8a, #2563eb, #38bdf8); width: 0%; }
+    nav { display:flex; gap: 8px; }
+    .link { text-decoration: underline; cursor:pointer; }
+    .hidden { display:none; }
+    .quote-card { text-align:center; padding: 32px 16px; }
+    .quote { font-size: 1.2rem; line-height: 1.5; color:#e2e8f0; }
+    .by { margin-top: 8px; color:#94a3b8; }
+
+    /* Mobile tweaks */
+    @media (max-width: 640px) {
+      .row { grid-template-columns: repeat(6, 1fr); }
+      .col-8 { grid-column: span 6; }
+      .col-6 { grid-column: span 6; }
+      .col-4 { grid-column: span 6; }
+      .col-3 { grid-column: span 3; }
+      .col-2 { grid-column: span 3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Health & Agoraphobia Tracker</h1>
+      <nav>
+        <button class="pill" id="navTracker">Tracker</button>
+        <button class="pill" id="navProgress">Progress</button>
+        <button class="pill" id="navGoals">Goals</button>
+      </nav>
+    </header>
+
+    <!-- Tracker Screen -->
+    <section id="screen-tracker" class="card">
+      <div class="row">
+        <div class="col-3">
+          <label for="date">Date</label>
+          <input id="date" type="date"/>
+        </div>
+        <div class="col-3">
+          <label for="dayPicker">Jump to day</label>
+          <select id="dayPicker"></select>
+        </div>
+        <div class="col-3">
+          <label>&nbsp;</label>
+          <div class="actions">
+            <button id="prevDay">◀ Prev</button>
+            <button id="nextDay">Next ▶</button>
+          </div>
+        </div>
+        <div class="col-3">
+          <label for="confidence">Confidence (1-10)</label>
+          <input id="confidence" type="number" min="1" max="10" step="1" placeholder="e.g., 6">
+        </div>
+
+        <div class="col-3">
+          <label for="indoor">Indoor Minutes</label>
+          <input id="indoor" type="number" min="0" step="1" placeholder="e.g., 12">
+        </div>
+        <div class="col-3">
+          <label for="panic">Panic Simulation</label>
+          <select id="panic">
+            <option value="">--</option>
+            <option value="Y">Yes</option>
+            <option value="N">No</option>
+          </select>
+        </div>
+        <div class="col-3">
+          <label for="distance">Outdoor Distance (ft)</label>
+          <input id="distance" type="number" min="0" step="1" placeholder="e.g., 25">
+        </div>
+        <div class="col-3">
+          <label for="notes">Notes</label>
+          <input id="notes" type="text" placeholder="How did it feel? Symptoms? Wins?">
+        </div>
+
+        <div class="col-12">
+          <div class="bar"><div id="goalBar"></div></div>
+          <div class="footer">
+            <div id="goalText">Daily goal: 0 / 0 indoor mins</div>
+            <div class="nowrap">This week mins: <span id="weekMins">0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="saveBtn">Save</button>
+        <button id="completeBtn" class="accent">Complete</button>
+        <button id="newBtn" class="muted">New</button>
+        <button id="exportBtn" class="muted">Export CSV</button>
+        <label class="pill" for="importFile" style="cursor:pointer;">Import CSV <input id="importFile" type="file" accept=".csv" style="display:none;"></label>
+        <button id="clearBtn" class="danger">Erase All</button>
+      </div>
+
+      <div class="scroll" style="margin-top:12px;">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Indoor (min)</th>
+              <th>Panic Sim</th>
+              <th>Outdoor (ft)</th>
+              <th>Conf</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Progress Screen -->
+    <section id="screen-progress" class="card hidden">
+      <div class="row">
+        <div class="col-6">
+          <h3>Weekly Summary</h3>
+          <p class="soft" id="weekSummary">No data yet.</p>
+        </div>
+        <div class="col-6">
+          <h3>Best Streak</h3>
+          <p class="soft" id="streakText">—</p>
+        </div>
+        <div class="col-12">
+          <div class="bar"><div id="weekBar"></div></div>
+          <div class="footer">
+            <div id="weekGoalText">Weekly goal: 0 / 0 mins</div>
+            <div class="nowrap"><span id="daysLogged">0</span> days logged</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Goals Screen -->
+    <section id="screen-goals" class="card hidden">
+      <div class="row">
+        <div class="col-3">
+          <label for="goalDailyIndoor">Daily indoor minutes goal</label>
+          <input id="goalDailyIndoor" type="number" min="0" step="1" placeholder="e.g., 15">
+        </div>
+        <div class="col-3">
+          <label for="goalWeeklyIndoor">Weekly indoor minutes goal</label>
+          <input id="goalWeeklyIndoor" type="number" min="0" step="1" placeholder="e.g., 75">
+        </div>
+        <div class="col-3">
+          <label for="goalOutdoor">Daily outdoor distance goal (ft)</label>
+          <input id="goalOutdoor" type="number" min="0" step="1" placeholder="e.g., 20">
+        </div>
+        <div class="col-3">
+          <label for="goalConfidence">Target confidence (1-10)</label>
+          <input id="goalConfidence" type="number" min="1" max="10" step="1" placeholder="e.g., 6">
+        </div>
+        <div class="col-12 actions">
+          <button id="saveGoals" class="primary">Save Goals</button>
+          <button id="resetGoals" class="danger">Reset Goals</button>
+        </div>
+        <div class="col-12 soft">Tip: Start small. Hitting easy goals builds momentum.</div>
+      </div>
+    </section>
+
+    <!-- Complete Screen -->
+    <section id="screen-complete" class="card hidden">
+      <div class="quote-card">
+        <div class="pill" style="margin-bottom:12px;">Great job today</div>
+        <div class="quote" id="quoteText">You did the thing — even if it was tiny.</div>
+        <div class="by" id="quoteBy">— You</div>
+        <div class="actions" style="justify-content:center; margin-top:16px;">
+          <button id="backToTracker" class="primary">Back to Tracker</button>
+          <button id="newQuote">New Quote</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>All data is stored on this device.</div>
+      <div class="soft">Install: menu → “Add to Home screen”</div>
+    </footer>
+  </div>
+
+  <script>
+    // ----- PWA Register -----
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+
+    // ----- Storage & Helpers -----
+    const $ = (id) => document.getElementById(id);
+    const STORAGE_KEY = "health_agoraphobia_entries_v2";
+    const GOAL_KEY = "health_agoraphobia_goals_v1";
+    const quotes = [
+      ["One step, then the next. That’s how mountains move.", "— Unknown"],
+      ["Courage is a habit. You practiced it today.", "— Unknown"],
+      ["Progress beats perfection, every single time.", "— Unknown"],
+      ["Your future self is high-fiving you right now.", "— Unknown"],
+      ["Small wins stack into big change.", "— Unknown"],
+      ["You showed up. That’s the hardest part.", "— Unknown"],
+      ["Anxiety lied. You did it anyway.", "— Unknown"]
+    ];
+
+    function todayISO() {
+      const d = new Date();
+      d.setHours(0,0,0,0);
+      return d.toISOString().slice(0,10);
+    }
+
+    function loadEntries() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+    }
+    function saveEntries(entries) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+      renderEntries(entries);
+      refreshDayPicker(entries);
+      updateProgress(entries);
+    }
+
+    function loadGoals() {
+      try { return JSON.parse(localStorage.getItem(GOAL_KEY)) || {dailyIndoor: 15, weeklyIndoor: 75, outdoor: 20, confidence: 6}; } catch { return {dailyIndoor: 15, weeklyIndoor: 75, outdoor: 20, confidence: 6}; }
+    }
+    function saveGoals(goals) {
+      localStorage.setItem(GOAL_KEY, JSON.stringify(goals));
+      setGoalsForm(goals);
+      updateGoalBar();
+      updateProgress(loadEntries());
+    }
+
+    function setGoalsForm(g) {
+      $("goalDailyIndoor").value = g.dailyIndoor ?? "";
+      $("goalWeeklyIndoor").value = g.weeklyIndoor ?? "";
+      $("goalOutdoor").value = g.outdoor ?? "";
+      $("goalConfidence").value = g.confidence ?? "";
+    }
+
+    // ----- Entry Form -----
+    function formToEntry() {
+      return {
+        date: $("date").value,
+        indoor: Number($("indoor").value || 0),
+        panic: $("panic").value,
+        distance: Number($("distance").value || 0),
+        confidence: Number($("confidence").value || 0),
+        notes: $("notes").value.trim(),
+      };
+    }
+    function setForm(e) {
+      $("date").value = e.date || todayISO();
+      $("indoor").value = e.indoor || "";
+      $("panic").value = e.panic || "";
+      $("distance").value = e.distance || "";
+      $("confidence").value = e.confidence || "";
+      $("notes").value = e.notes || "";
+      updateGoalBar();
+    }
+    function clearForm() { setForm({date: todayISO()}); }
+
+    // ----- Day Picker & Navigation -----
+    function refreshDayPicker(entries) {
+      const sel = $("dayPicker");
+      const dates = [...new Set(entries.map(x => x.date))].sort().reverse();
+      sel.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join("");
+      const cur = $("date").value;
+      if (dates.includes(cur)) sel.value = cur;
+    }
+    function goToDay(d) {
+      const entries = loadEntries();
+      const x = entries.find(e => e.date === d) || {date: d};
+      setForm(x);
+      $("dayPicker").value = d;
+    }
+    function nextPrevDay(delta) {
+      const cur = $("date").value;
+      const d = new Date(cur + "T00:00:00");
+      d.setDate(d.getDate() + delta);
+      const iso = d.toISOString().slice(0,10);
+      goToDay(iso);
+    }
+
+    // ----- Render Table -----
+    function renderEntries(entries) {
+      entries.sort((a,b) => (b.date || "").localeCompare(a.date || ""));
+      const tbody = document.querySelector("#table tbody");
+      tbody.innerHTML = "";
+      entries.forEach((e, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${e.date || ""}</td>
+          <td>${e.indoor || ""}</td>
+          <td>${e.panic || ""}</td>
+          <td>${e.distance || ""}</td>
+          <td>${e.confidence || ""}</td>
+          <td>${(e.notes || "").replace(/</g,"&lt;")}</td>
+          <td>
+            <button class="muted" onclick="editEntry('${e.date}')">Edit</button>
+            <button class="danger" onclick="deleteEntry('${e.date}')">Delete</button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function editEntry(date) {
+      const entries = loadEntries();
+      const e = entries.find(x => x.date === date);
+      if (e) setForm(e);
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+    function deleteEntry(date) {
+      const entries = loadEntries();
+      const idx = entries.findIndex(x => x.date === date);
+      if (idx >= 0 && confirm("Delete this day?")) {
+        entries.splice(idx,1);
+        saveEntries(entries);
+        if ($("date").value === date) clearForm();
+      }
+    }
+
+    // ----- Goals Progress Bars -----
+    function updateGoalBar() {
+      const goals = loadGoals();
+      const indoor = Number($("indoor").value || 0);
+      const pct = goals.dailyIndoor ? Math.min(100, Math.round(indoor / goals.dailyIndoor * 100)) : 0;
+      $("goalBar").style.width = pct + "%";
+      $("goalText").textContent = `Daily goal: ${indoor} / ${goals.dailyIndoor || 0} indoor mins`;
+    }
+
+    function updateProgress(entries) {
+      // Weekly mins (Mon-Sun)
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      const day = startOfWeek.getDay();
+      const diffToMonday = (day + 6) % 7;
+      startOfWeek.setDate(now.getDate() - diffToMonday);
+      startOfWeek.setHours(0,0,0,0);
+
+      let weekMins = 0;
+      let daysLogged = new Set();
+      entries.forEach(e => {
+        if (!e.date) return;
+        const d = new Date(e.date + "T00:00:00");
+        daysLogged.add(e.date);
+        if (d >= startOfWeek && d <= now) {
+          weekMins += Number(e.indoor || 0);
+        }
+      });
+      $("weekMins").textContent = weekMins;
+      $("daysLogged").textContent = daysLogged.size;
+
+      const goals = loadGoals();
+      const pct = goals.weeklyIndoor ? Math.min(100, Math.round(weekMins / goals.weeklyIndoor * 100)) : 0;
+      $("weekBar").style.width = pct + "%";
+      $("weekGoalText").textContent = `Weekly goal: ${weekMins} / ${goals.weeklyIndoor || 0} mins`;
+
+      // Streak: consecutive days with any indoor > 0 ending today
+      const set = new Set(entries.filter(e=>e.indoor>0).map(e=>e.date));
+      let streak = 0;
+      let d = new Date(); d.setHours(0,0,0,0);
+      while (set.has(d.toISOString().slice(0,10))) {
+        streak++; d.setDate(d.getDate()-1);
+      }
+      $("streakText").textContent = streak ? `${streak} day streak` : "No current streak";
+      $("weekSummary").textContent = weekMins ? `You’ve logged ${weekMins} indoor minutes so far this week.` : "Log your first day to see weekly progress.";
+    }
+
+    // ----- Export/Import CSV -----
+    function toCSV(entries) {
+      const header = ["date","indoor","panic","distance","confidence","notes"];
+      const rows = [header.join(",")];
+      entries.forEach(e => {
+        const vals = header.map(k => {
+          let v = (e[k] ?? "").toString().replace(/"/g,'""');
+          if (v.includes(",") || v.includes('"') || v.includes("\n")) v = `"${v}"`;
+          return v;
+        });
+        rows.push(vals.join(","));
+      });
+      return rows.join("\n");
+    }
+    function fromCSV(text) {
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (!lines.length) return [];
+      const header = lines[0].split(",").map(s => s.trim());
+      const out = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        const cols = [];
+        let cur = ""; let inQ = false;
+        for (let c of line) {
+          if (c === '"' ) { inQ = !inQ; }
+          else if (c === "," && !inQ) { cols.push(cur); cur=""; }
+          else { cur += c; }
+        }
+        cols.push(cur);
+        const obj = {};
+        ["date","indoor","panic","distance","confidence","notes"].forEach((k, idx) => {
+          let v = cols[idx] || "";
+          if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1).replace(/""/g,'"');
+          obj[k] = (k==="indoor"||k==="distance"||k==="confidence") ? Number(v||0) : v;
+        });
+        out.push(obj);
+      }
+      return out;
+    }
+
+    // ----- Nav & Complete Screen -----
+    function show(id) {
+      ["screen-tracker","screen-progress","screen-goals","screen-complete"].forEach(s => {
+        $(s).classList.toggle("hidden", s !== id);
+      });
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+    function randomQuote() {
+      const [q, by] = quotes[Math.floor(Math.random()*quotes.length)];
+      $("quoteText").textContent = q;
+      $("quoteBy").textContent = by;
+    }
+
+    // ----- Events -----
+    window.addEventListener("DOMContentLoaded", () => {
+      // Prefill date
+      $("date").value = todayISO();
+
+      // Load goals and entries
+      setGoalsForm(loadGoals());
+      const entries = loadEntries();
+      renderEntries(entries);
+      refreshDayPicker(entries);
+      updateProgress(entries);
+      updateGoalBar();
+
+      // Form events
+      ["indoor"].forEach(id => $(id).addEventListener("input", updateGoalBar));
+
+      $("saveBtn").addEventListener("click", () => {
+        const entries = loadEntries();
+        const e = formToEntry();
+        if (!e.date) { alert("Pick a date"); return; }
+        const idx = entries.findIndex(x => x.date === e.date);
+        if (idx >= 0) entries[idx] = e; else entries.push(e);
+        saveEntries(entries);
+      });
+      $("newBtn").addEventListener("click", clearForm);
+      $("completeBtn").addEventListener("click", () => {
+        // Save then show complete
+        $("saveBtn").click();
+        randomQuote();
+        show("screen-complete");
+      });
+
+      $("backToTracker").addEventListener("click", () => show("screen-tracker"));
+      $("newQuote").addEventListener("click", randomQuote);
+
+      $("exportBtn").addEventListener("click", () => {
+        const csv = toCSV(loadEntries());
+        const blob = new Blob([csv], {type: "text/csv"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "health_agoraphobia_tracker.csv";
+        a.click(); URL.revokeObjectURL(url);
+      });
+      $("importFile").addEventListener("change", (e) => {
+        const file = e.target.files?.[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const text = reader.result.toString();
+            const parsed = fromCSV(text);
+            if (!confirm(`Import ${parsed.length} entries and replace existing data?`)) return;
+            saveEntries(parsed);
+          } catch (err) { alert("Could not import file"); }
+        };
+        reader.readAsText(file); e.target.value = "";
+      });
+      $("clearBtn").addEventListener("click", () => {
+        if (confirm("Erase ALL tracker data on this device?")) {
+          localStorage.removeItem(STORAGE_KEY);
+          renderEntries([]);
+          refreshDayPicker([]);
+          clearForm();
+        }
+      });
+
+      // Day navigation
+      $("dayPicker").addEventListener("change", (e) => goToDay(e.target.value));
+      $("prevDay").addEventListener("click", () => nextPrevDay(-1));
+      $("nextDay").addEventListener("click", () => nextPrevDay(1));
+
+      // Nav buttons
+      $("navTracker").addEventListener("click", ()=>show("screen-tracker"));
+      $("navProgress").addEventListener("click", ()=>show("screen-progress"));
+      $("navGoals").addEventListener("click", ()=>show("screen-goals"));
+
+      // Goals
+      $("saveGoals").addEventListener("click", () => {
+        const g = {
+          dailyIndoor: Number($("goalDailyIndoor").value || 0),
+          weeklyIndoor: Number($("goalWeeklyIndoor").value || 0),
+          outdoor: Number($("goalOutdoor").value || 0),
+          confidence: Number($("goalConfidence").value || 0),
+        };
+        saveGoals(g);
+        alert("Goals saved");
+      });
+      $("resetGoals").addEventListener("click", () => {
+        if (!confirm("Reset goals to defaults?")) return;
+        saveGoals({dailyIndoor: 15, weeklyIndoor: 75, outdoor: 20, confidence: 6});
+      });
+    });
+  </script>
+</body>
+</html>
