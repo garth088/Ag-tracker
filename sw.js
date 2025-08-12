@@ -1,5 +1,5 @@
 /* AG Tracker Service Worker */
-const CACHE_VERSION = 'v1.0.1'; // bump when you change files
+const CACHE_VERSION = 'v1.0.2'; // bump when you change files; incremented to ensure updated resources after diary/suggestions changes
 const CACHE_NAME = `agtracker-${CACHE_VERSION}`;
 
 const PRECACHE = [
